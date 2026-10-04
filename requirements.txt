@@ -1,0 +1,10 @@
+# RecentAgent dependencies (Python 3.10+)
+streamlit>=1.36          # chat UI
+openai>=1.40             # OpenAI-compatible client (works with Groq & Ollama too)
+numpy>=1.26              # vector math
+scikit-learn>=1.4        # TF-IDF fallback retriever
+ddgs>=9.0                # DuckDuckGo web search (no API key needed)
+wikipedia>=1.4           # Wikipedia summaries
+pypdf>=4.0               # PDF text extraction
+python-docx>=1.1         # DOCX text extraction
+python-dotenv>=1.0       # .env file support

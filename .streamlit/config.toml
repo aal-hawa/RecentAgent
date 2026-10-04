@@ -1,0 +1,13 @@
+# RecentAgent — Streamlit runtime configuration
+# Local-first defaults: no usage telemetry, viewer toolbar keeps the normal
+# app menu (Rerun / Settings / Print / About) but hides the cloud "Deploy
+# this app" dialog — RecentAgent runs on your own machine.
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "viewer"
+
+[server]
+headless = true
