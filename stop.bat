@@ -16,8 +16,9 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8501 ^| findstr LISTENING') 
     set FOUND=1
 )
 
-rem 3) Sweep: any leftover python/streamlit process launched from this folder
-powershell -NoProfile -Command "$q='Recent'+'Agent'; Get-CimInstance Win32_Process -Filter \"Name='python.exe' OR Name='streamlit.exe'\" | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like ('*' + $q + '*streamlit*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>&1
+rem 3) Sweep: leftover python/streamlit belonging to THIS folder (match by
+rem    executable path - cmdlines are relative like ".venv\Scripts\python.exe")
+powershell -NoProfile -Command "$q='Recent'+'Agent'; Get-CimInstance Win32_Process -Filter \"Name='python.exe' OR Name='streamlit.exe'\" | Where-Object { $_.ProcessId -ne $PID -and $_.ExecutablePath -like ('*'+$q+'*') -and $_.CommandLine -like '*streamlit*' } | ForEach-Object { taskkill /F /T /PID $($_.ProcessId) 2>&1 | Out-Null }" >nul 2>&1
 
 if %FOUND%==1 (
     ping -n 2 127.0.0.1 >nul
