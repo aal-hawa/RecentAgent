@@ -26,6 +26,7 @@ SAMPLES_DIR = PROJECT_DIR / "sample_docs"
 
 st.set_page_config(page_title="RecentAgent — AI Agent with RAG", page_icon="🤖",
                    layout="wide")
+st.logo("logo.svg")  # brand logo (sidebar + main area)
 st.title("🤖 RecentAgent")
 st.caption("An AI agent with **RAG** (document knowledge base) and **tools** "
            "(calculator, web search, Wikipedia) — built from scratch with an "
@@ -99,11 +100,13 @@ def load_sample_documents() -> int:
 with st.sidebar:
     st.header("⚙️ Configuration")
 
+    env_provider = os.getenv("RECENT_PROVIDER", "ollama")
+    providers = list(PROVIDER_PRESETS)
     provider = st.selectbox(
         "LLM provider",
-        list(PROVIDER_PRESETS),
+        providers,
         format_func=lambda p: PROVIDER_PRESETS[p]["label"],
-        index=0,
+        index=providers.index(env_provider) if env_provider in providers else 0,
     )
     preset = PROVIDER_PRESETS[provider]
     env_model = os.getenv("RECENT_MODEL", "")
@@ -134,6 +137,8 @@ with st.sidebar:
     api_key = "" if provider == "ollama" else st.text_input(
         "API key", value=os.getenv("RECENT_API_KEY", ""), type="password"
     )
+    if provider != "ollama" and not api_key and os.getenv("GEMINI_API"):
+        st.caption("Using GEMINI_API from your environment.")
     st.caption(preset["hint"])
     temperature = st.slider("Temperature", 0.0, 1.0, 0.2, 0.05,
                             help="Low = focused and deterministic (best for agents).")

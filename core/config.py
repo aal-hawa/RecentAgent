@@ -33,6 +33,15 @@ PROVIDER_PRESETS: dict[str, dict] = {
         "embedding_model": None,
         "hint": "Get a free key at https://console.groq.com (no credit card).",
     },
+    "google": {
+        "label": "Google Gemini (free API key)",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "default_model": "gemini-flash-latest",
+        "needs_key": True,
+        "supports_api_embeddings": False,  # no embeddings used -> TF-IDF fallback
+        "embedding_model": None,
+        "hint": "Free key at https://aistudio.google.com — set GEMINI_API or RECENT_API_KEY.",
+    },
     "openai": {
         "label": "OpenAI (api.openai.com)",
         "base_url": "https://api.openai.com/v1",
@@ -66,7 +75,11 @@ class Settings:
         return self.model or self.preset()["default_model"]
 
     def resolved_api_key(self) -> str:
-        return self.api_key or os.getenv("RECENT_API_KEY", "")
+        return (
+            self.api_key
+            or os.getenv("RECENT_API_KEY", "")
+            or os.getenv("GEMINI_API", "")
+        )
 
     def validate(self) -> list[str]:
         """Return a list of blocking configuration problems (empty = OK)."""

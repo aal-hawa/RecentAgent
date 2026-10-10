@@ -1,5 +1,7 @@
 # 🤖 RecentAgent — AI Agent with RAG & Tools
 
+<p align="center"><img src="logo.svg" width="160" alt="RecentAgent logo" /></p>
+
 A from-scratch **AI agent** that combines **Retrieval-Augmented Generation (RAG)**
 with a **tool-using ReAct reasoning loop** — transparent, readable Python
 (no heavyweight agent frameworks), a Streamlit chat UI, and full source
@@ -8,6 +10,21 @@ citations for every grounded answer.
 > **Everything happens in front of you:** for each question you can watch the
 > agent *think* (Thought → Action → Observation), see which tool it called,
 > and verify the exact document passages it used.
+
+## 🧠 LLM providers
+
+RecentAgent speaks the OpenAI-compatible protocol, so it works with:
+
+| Provider | Setup |
+|---|---|
+| **Google Gemini** (recommended) | free key from [aistudio.google.com](https://aistudio.google.com) — set `GEMINI_API` (or `RECENT_API_KEY`) in your environment; model `gemini-flash-latest` |
+| Groq | free key from [console.groq.com](https://console.groq.com) |
+| OpenAI | standard API key |
+| Ollama | 100% local, no key — `ollama pull llama3.1` |
+
+> RecentAgent is a **local-first** app: it runs on your own machine and talks
+> directly to the provider you choose. There is no cloud deployment of this app —
+> by design, your documents stay local.
 
 ## ✨ Features
 
