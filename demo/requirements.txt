@@ -1,0 +1,4 @@
+# RecentAgent web demo — hosted on Vercel as a Python (FastAPI) function.
+# Everything else (TF-IDF RAG, ReAct loop, calculator, Wikipedia tool,
+# Gemini client) is implemented with the Python standard library only.
+fastapi>=0.117

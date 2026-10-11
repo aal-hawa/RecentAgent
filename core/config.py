@@ -36,7 +36,7 @@ PROVIDER_PRESETS: dict[str, dict] = {
     "google": {
         "label": "Google Gemini (free API key)",
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "default_model": "gemini-flash-latest",
+        "default_model": "gemini-flash-lite-latest",
         "needs_key": True,
         "supports_api_embeddings": False,  # no embeddings used -> TF-IDF fallback
         "embedding_model": None,

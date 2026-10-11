@@ -11,20 +11,31 @@ citations for every grounded answer.
 > agent *think* (Thought → Action → Observation), see which tool it called,
 > and verify the exact document passages it used.
 
+## 🌐 Live web demo (testing only)
+
+**[recentagent.vercel.app](https://recentagent.vercel.app)**
+
+> ⚠️ **This hosted demo is for testing and previewing only — not the product.**
+> - It runs a simplified web version of the agent (same ReAct loop, same prompts) on a free-tier Gemini key.
+> - The knowledge base is the four sample documents; there is no upload, and conversations reset when the demo goes cold.
+> - For the real experience — your own documents, your own provider, everything local — run RecentAgent on your machine (see below).
+>
+> The web demo code lives in the [`demo/`](demo/) folder and is fully separate from the app itself.
+
 ## 🧠 LLM providers
 
 RecentAgent speaks the OpenAI-compatible protocol, so it works with:
 
 | Provider | Setup |
 |---|---|
-| **Google Gemini** (recommended) | free key from [aistudio.google.com](https://aistudio.google.com) — set `GEMINI_API` (or `RECENT_API_KEY`) in your environment; model `gemini-flash-latest` |
+| **Google Gemini** (recommended) | free key from [aistudio.google.com](https://aistudio.google.com) — set `GEMINI_API` (or `RECENT_API_KEY`) in your environment; model `gemini-flash-lite-latest` |
 | Groq | free key from [console.groq.com](https://console.groq.com) |
 | OpenAI | standard API key |
 | Ollama | 100% local, no key — `ollama pull llama3.1` |
 
 > RecentAgent is a **local-first** app: it runs on your own machine and talks
-> directly to the provider you choose. There is no cloud deployment of this app —
-> by design, your documents stay local.
+> directly to the provider you choose. The only hosted piece is the small testing
+> demo above — your local documents never touch it.
 
 ## ✨ Features
 
@@ -65,6 +76,7 @@ RecentAgent/
 │   ├── tools.py            # tool registry (incl. AST-safe calculator)
 │   └── agent.py            # ReAct loop + robust output parsing
 ├── sample_docs/            # 4 demo documents (pre-loadable knowledge base)
+├── demo/                   # hosted web demo — testing only (see demo/README.md)
 ├── tests/smoke_test.py     # offline unit tests (no API key required)
 ├── tests/real_ollama_test.py  # end-to-end test on a real local Ollama server
 ├── start.bat / stop.bat    # Windows one-click launch / stop
