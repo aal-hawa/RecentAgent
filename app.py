@@ -26,7 +26,7 @@ SAMPLES_DIR = PROJECT_DIR / "sample_docs"
 
 st.set_page_config(page_title="RecentAgent — AI Agent with RAG", page_icon="🤖",
                    layout="wide")
-st.logo("logo.svg")  # brand logo (sidebar + main area)
+st.logo("logo.png")  # brand logo (sidebar + main area)
 st.title("🤖 RecentAgent")
 st.caption("An AI agent with **RAG** (document knowledge base) and **tools** "
            "(calculator, web search, Wikipedia) — built from scratch with an "

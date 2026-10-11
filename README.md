@@ -1,6 +1,6 @@
 # 🤖 RecentAgent — AI Agent with RAG & Tools
 
-<p align="center"><img src="logo.svg" width="160" alt="RecentAgent logo" /></p>
+<p align="center"><img src="logo.png" width="160" alt="RecentAgent logo" /></p>
 
 A from-scratch **AI agent** that combines **Retrieval-Augmented Generation (RAG)**
 with a **tool-using ReAct reasoning loop** — transparent, readable Python

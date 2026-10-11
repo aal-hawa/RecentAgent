@@ -516,9 +516,9 @@ async def index() -> HTMLResponse:
     return HTMLResponse(html)
 
 
-@app.get("/logo.svg")
+@app.get("/logo.png")
 async def logo() -> FileResponse:
-    return FileResponse(BASE_DIR / "logo.svg", media_type="image/svg+xml")
+    return FileResponse(BASE_DIR / "logo.png", media_type="image/png")
 
 
 @app.get("/api/health")
