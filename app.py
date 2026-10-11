@@ -24,9 +24,9 @@ PROJECT_DIR = Path(__file__).resolve().parent
 KB_DIR = PROJECT_DIR / "data" / "kb"
 SAMPLES_DIR = PROJECT_DIR / "sample_docs"
 
-st.set_page_config(page_title="RecentAgent — AI Agent with RAG", page_icon="🤖",
+st.set_page_config(page_title="RecentAgent — AI Agent with RAG", page_icon="logo.png",
                    layout="wide")
-st.logo("logo.png")  # brand logo (sidebar + main area)
+st.sidebar.image("logo.png", width=160)  # brand logo at the top of the sidebar
 st.title("🤖 RecentAgent")
 st.caption("An AI agent with **RAG** (document knowledge base) and **tools** "
            "(calculator, web search, Wikipedia) — built from scratch with an "

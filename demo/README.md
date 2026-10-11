@@ -15,8 +15,9 @@ set all keep working exactly as documented in the main README.
 | File | Purpose |
 |---|---|
 | `index.py` | FastAPI app: serves the page and exposes `POST /api/chat` — a faithful port of the **ReAct loop** (same prompts, same parsing), with tools: `knowledge_base_search` (TF-IDF from scratch), `calculator` (same AST sandbox), `wikipedia` (public REST API), `current_datetime`. Gemini is called through the OpenAI-compatible endpoint using the `GEMINI_API` env var. Standard library only, apart from FastAPI itself. |
-| `index.html` | The chat UI — light theme, reasoning-trace and sources expanders, mirroring the Streamlit app's layout |
-| `logo.png` | Copy of the project logo served by the demo |
+| `index.html` | The UI — a pixel-faithful replica of the **local Streamlit app's design** (sidebar with Configuration / Agent settings / Knowledge Base sections, wide chat area, reasoning-trace and sources expanders, bottom chat input). The knowledge-base panel shows the 4 sample documents (demo data; upload/paste/delete/clear are shown but locked — they work in the real project, not in the demo) |
+| `logo.png` | Copy of the project logo served by the demo (sidebar brand image) |
+| `favicon.png`, `favicon-32.png`, `apple-touch-icon.png` | Browser-tab icons (navy tile + logo), served by `index.py` |
 | `sample_docs/` | The same four sample documents used by the local app |
 | `requirements.txt` | `fastapi` only |
 | `vercel.json` | 60s function timeout for the agent loop |

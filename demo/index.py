@@ -521,6 +521,45 @@ async def logo() -> FileResponse:
     return FileResponse(BASE_DIR / "logo.png", media_type="image/png")
 
 
+@app.get("/favicon.png")
+async def favicon() -> FileResponse:
+    return FileResponse(BASE_DIR / "favicon.png", media_type="image/png")
+
+
+@app.get("/favicon-32.png")
+async def favicon_32() -> FileResponse:
+    return FileResponse(BASE_DIR / "favicon-32.png", media_type="image/png")
+
+
+@app.get("/apple-touch-icon.png")
+async def apple_touch_icon() -> FileResponse:
+    return FileResponse(BASE_DIR / "apple-touch-icon.png", media_type="image/png")
+
+
+@app.get("/api/kb")
+async def kb() -> dict:
+    """Knowledge-base panel data for the demo UI (mirrors the local app's
+    sidebar KB section: document list, chunk counts, stats)."""
+    docs: dict[str, dict] = {}
+    for ch in KB_CHUNKS:  # real chunk counts from the TF-IDF index
+        entry = docs.setdefault(ch["source"], {"name": ch["source"], "chunks": 0})
+        entry["chunks"] += 1
+    for path in sorted((BASE_DIR / "sample_docs").glob("*.txt")):
+        raw = path.read_text(encoding="utf-8", errors="replace")
+        entry = docs.setdefault(path.name, {"name": path.name, "chunks": 0})
+        entry["size"] = len(raw)
+        entry["words"] = len(raw.split())
+        entry["preview"] = " ".join(raw.strip().split())[:180]
+    return {
+        "demo": True,
+        "documents": sorted(docs.values(), key=lambda d: d["name"]),
+        "total_chunks": len(KB_CHUNKS),
+        "chunk_size": CHUNK_SIZE,
+        "chunk_overlap": CHUNK_OVERLAP,
+        "embedder": "TF-IDF (from scratch)",
+    }
+
+
 @app.get("/api/health")
 async def health() -> dict:
     return {
