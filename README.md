@@ -28,7 +28,7 @@ RecentAgent speaks the OpenAI-compatible protocol, so it works with:
 
 | Provider | Setup |
 |---|---|
-| **Google Gemini** (recommended) | free key from [aistudio.google.com](https://aistudio.google.com) — set `GEMINI_API` (or `RECENT_API_KEY`) in your environment; model `gemini-flash-lite-latest` |
+| **Google Gemini** (recommended) | free key from [aistudio.google.com](https://aistudio.google.com) — set `GEMINI_API` (or `RECENT_API_KEY`) in your environment; model `gemini-3.5-flash` with automatic fallback to `gemini-3.1-flash-lite` |
 | Groq | free key from [console.groq.com](https://console.groq.com) |
 | OpenAI | standard API key |
 | Ollama | 100% local, no key — `ollama pull llama3.1` |

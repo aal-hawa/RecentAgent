@@ -7,6 +7,8 @@ project dependency-light and makes the provider switchable at runtime.
 """
 from __future__ import annotations
 
+import time
+
 from openai import OpenAI
 
 from .config import Settings
@@ -21,6 +23,12 @@ class LLMClient:
         preset = settings.preset()
         self.model = settings.resolved_model()
         self.temperature = settings.temperature
+        # Optional second model used when the primary keeps returning empty
+        # completions (the Gemini free tier's "-latest" aliases did exactly
+        # that in 2026-10). Only set for providers that have one.
+        self.fallback_model = preset.get("fallback_model")
+        if self.fallback_model == self.model:
+            self.fallback_model = None
 
         api_key = settings.resolved_api_key()
         if preset["needs_key"] and not api_key:
@@ -34,18 +42,39 @@ class LLMClient:
 
     # ------------------------------------------------------------------
     def chat(self, messages: list[dict]) -> str:
-        """Send a chat completion request and return the assistant text."""
-        try:
-            response = self._client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=self.temperature,
-            )
-        except Exception as exc:  # network, auth, rate-limit, ...
-            raise LLMError(f"LLM request failed ({type(exc).__name__}): {exc}") from exc
+        """Send a chat completion request and return the assistant text.
 
-        content = response.choices[0].message.content if response.choices else None
-        return (content or "").strip()
+        Empty completions (HTTP 200, zero completion tokens) happen on some
+        free tiers — most notoriously the Gemini "-latest" aliases — so each
+        model gets a couple of quick retries, and providers that define a
+        fallback_model switch to it before giving up.
+        """
+        models = [self.model] + ([self.fallback_model] if self.fallback_model else [])
+        attempts_per_model = 3 if self.fallback_model else 4
+        last_detail = "no attempt made"
+        for model in models:
+            for _attempt in range(attempts_per_model):
+                try:
+                    response = self._client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=self.temperature,
+                    )
+                except Exception as exc:  # network, auth, rate-limit, ...
+                    raise LLMError(f"LLM request failed ({type(exc).__name__}): {exc}") from exc
+
+                content = response.choices[0].message.content if response.choices else None
+                content = (content or "").strip()
+                if content:
+                    return content
+                last_detail = "empty completion (200 OK, 0 tokens)"
+                time.sleep(0.8)  # empty responses arrive fast; retry briefly
+            # primary produced repeated empty completions -> try the fallback
+        raise LLMError(
+            "The model returned empty answers repeatedly "
+            f"(tried: {', '.join(models)}; {last_detail}). "
+            "This is a known free-tier hiccup — please try again."
+        )
 
     # ------------------------------------------------------------------
     def test_connection(self) -> tuple[bool, str]:

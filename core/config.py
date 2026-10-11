@@ -36,7 +36,12 @@ PROVIDER_PRESETS: dict[str, dict] = {
     "google": {
         "label": "Google Gemini (free API key)",
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "default_model": "gemini-flash-lite-latest",
+        # 2026-10: the "-latest" aliases (flash-lite-latest, flash-latest)
+        # intermittently return empty completions on the free tier; the pinned
+        # versioned models are healthy. fallback_model is used by LLMClient
+        # when the primary keeps returning empty answers.
+        "default_model": "gemini-3.5-flash",
+        "fallback_model": "gemini-3.1-flash-lite",
         "needs_key": True,
         "supports_api_embeddings": False,  # no embeddings used -> TF-IDF fallback
         "embedding_model": None,

@@ -6,8 +6,9 @@ the same tool philosophy, and a TF-IDF knowledge base over the same sample
 documents. It exists so the agent behavior can be tried in a browser.
 
 Differences from the local app (by design):
-  - LLM: Google Gemini (gemini-flash-latest) via the OpenAI-compatible
-    endpoint, key provided as the GEMINI_API environment variable
+  - LLM: Google Gemini (gemini-3.5-flash, with an automatic fallback to
+    gemini-3.1-flash-lite) via the OpenAI-compatible endpoint, key provided
+    as the GEMINI_API environment variable
   - tools: calculator (same AST sandbox), wikipedia (public REST API),
     knowledge_base_search (TF-IDF, from scratch), current_datetime
   - web_search (DuckDuckGo) is NOT included: it is unreliable from
@@ -38,10 +39,16 @@ app = FastAPI(title="RecentAgent demo")
 
 BASE_DIR = Path(__file__).parent
 GEMINI_BASE = os.environ.get("RECENT_DEMO_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai")
-# flash-lite-latest: the reliable free-tier choice as of 2026-10 — the
-# full-size "flash-latest" alias currently routes to a degraded backend
-# (multi-second to minute-long stalls, 429/503 under load).
-MODEL = os.environ.get("RECENT_MODEL", "gemini-flash-lite-latest")
+# 2026-10: the "-latest" aliases (flash-lite-latest, flash-latest) are
+# broken on the free tier — they intermittently return HTTP 200 with a bare
+# {"role":"assistant"} message and completion_tokens=0 (measured 75-100%
+# of calls). Pinned versioned models are healthy, so the demo pins them:
+#   primary  gemini-3.5-flash      (5/5 good, ~1.4s avg)
+#   fallback gemini-3.1-flash-lite (5/5 good, ~3.5s avg)
+# llm_chat below also retries empty completions and switches to the fallback
+# automatically.
+MODEL = os.environ.get("RECENT_MODEL", "gemini-3.5-flash")
+FALLBACK_MODEL = os.environ.get("RECENT_FALLBACK_MODEL", "gemini-3.1-flash-lite")
 MAX_ITERATIONS = 4          # tool rounds per question (demo keeps answers fast)
 WALL_BUDGET_S = 48          # hard stop before the 60s function limit
 TOOL_OBS_CAP = 2500         # context hygiene, same as the local app
@@ -55,33 +62,42 @@ class LLMError(RuntimeError):
 
 
 def llm_chat(messages: list[dict], max_tokens: int = 1800, timeout: float = 25.0,
-             attempts: int = 3, deadline: float | None = None,
+             attempts: int = 5, deadline: float | None = None,
              model: str | None = None) -> tuple[str, dict]:
-    """One chat completion with small retries on transient free-tier errors.
+    """One chat completion with retries on transient free-tier errors.
 
     Returns (content, full assistant message dict). The full message includes
     Gemini's `extra_content.google.thought_signature`, which MUST be sent
     back in later turns for thinking models — dropping it makes some serving
     paths return empty completions.
 
-    The free Gemini tier also occasionally answers 429 (quota) / 5xx
-    (overloaded) or stalls; retrying once or twice inside the caller's
-    deadline is usually enough. `deadline` is a time.monotonic() timestamp —
-    attempts are only started if they fit before it.
+    Failure modes handled here:
+      - 429/5xx (quota/overload): back off and retry
+      - 200 with an EMPTY message (completion_tokens=0): the free tier's
+        "-latest" aliases do this intermittently. Empty responses come
+        back fast, so retries are cheap; after EMPTY_SWITCH_AFTER empties
+        on the primary model the remaining attempts use FALLBACK_MODEL
+        (a pass-through when the caller pinned `model` explicitly).
+    `deadline` is a time.monotonic() timestamp — attempts are only started
+    if they fit before it.
     """
     key = os.environ.get("GEMINI_API") or os.environ.get("GOOGLE_API_KEY") or ""
     if not key:
         raise LLMError("GEMINI_API is not configured on the server.")
-    body = json.dumps({
-        "model": model or MODEL,
-        "messages": messages,
-        "temperature": 0.2,
-        "max_tokens": max_tokens,
-    }).encode("utf-8")
+    use_model = model or MODEL
+    empties = 0    # consecutive empty completions on the current model
+    quota429 = 0   # consecutive 429 quota rejections on the current model
+    SWITCH_AFTER = 2
     last_detail = "no attempt made"
     for attempt in range(1, attempts + 1):
         if deadline is not None and attempt > 1 and time.monotonic() + timeout + 1.5 > deadline:
             break  # not enough time left for another try
+        body = json.dumps({
+            "model": use_model,
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": max_tokens,
+        }).encode("utf-8")
         req = urllib.request.Request(
             GEMINI_BASE.rstrip("/") + "/chat/completions",
             data=body,
@@ -93,6 +109,19 @@ def llm_chat(messages: list[dict], max_tokens: int = 1800, timeout: float = 25.0
                 raw = resp.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as exc:
             last_detail = f"HTTP {exc.code}: " + exc.read().decode("utf-8", "replace")[:200]
+            if exc.code == 429:
+                # Quotas are partly per-model — after repeated 429s on the
+                # primary, the fallback model's separate bucket may still
+                # have headroom.
+                quota429 += 1
+                if (
+                    model is None
+                    and use_model == MODEL
+                    and quota429 >= SWITCH_AFTER
+                    and FALLBACK_MODEL
+                    and FALLBACK_MODEL != MODEL
+                ):
+                    use_model = FALLBACK_MODEL
             if exc.code in (429, 500, 502, 503, 504) and attempt < attempts:
                 time.sleep(2.5 * attempt)  # transient quota/overload — back off, retry
                 continue
@@ -121,15 +150,25 @@ def llm_chat(messages: list[dict], max_tokens: int = 1800, timeout: float = 25.0
         content = (message.get("content") or "").strip()
         if content:
             return content, message
-        # Empty completions are how the free tier soft-throttles under load —
-        # retrying too aggressively burns quota, so we back off meaningfully
-        # and eventually surface a clear, honest message to the visitor.
+        # Empty completions (200 OK, completion_tokens=0) are the free tier's
+        # alias-routing bug — they arrive fast, so retry briefly; after
+        # repeated empties switch to the fallback model. Retrying too
+        # aggressively burns quota, so keep the pause short but bounded.
+        empties += 1
         last_detail = f"empty content (raw: {raw[:200]!r})"
+        if (
+            model is None  # caller did not pin a specific model
+            and use_model == MODEL
+            and empties >= SWITCH_AFTER
+            and FALLBACK_MODEL
+            and FALLBACK_MODEL != MODEL
+        ):
+            use_model = FALLBACK_MODEL
         if attempt < attempts:
-            time.sleep(3.0 * attempt)
+            time.sleep(0.8)
             continue
         raise LLMError(
-            "The Gemini free tier is busy or rate-limited right now "
+            "The Gemini free tier is busy or returning empty answers right now "
             f"({last_detail[:60]}) — please try again in a moment."
         )
     raise LLMError(f"LLM unavailable after {attempts} attempts ({last_detail})")
@@ -566,6 +605,7 @@ async def health() -> dict:
         "ok": True,
         "demo": True,
         "model": MODEL,
+        "fallback_model": FALLBACK_MODEL,
         "llm_configured": bool(os.environ.get("GEMINI_API") or os.environ.get("GOOGLE_API_KEY")),
         "chunks": len(KB_CHUNKS),
         "documents": sorted({c["source"] for c in KB_CHUNKS}),

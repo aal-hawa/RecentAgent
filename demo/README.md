@@ -37,10 +37,11 @@ node demo/deploy.mjs
 - **No web_search tool** — DuckDuckGo scraping is unreliable from serverless IPs.
 - **No document upload** — the knowledge base is the four sample documents.
 - **Conversation history resets** whenever the serverless instance goes cold.
-- **Free-tier throttling**: under sustained load the Gemini free tier soft-throttles
-  (requests return empty completions). The demo retries with backoff and shows a
-  friendly message asking to try again in a moment — this is a free-tier limit,
-  not a bug. Check `/api/health` and `/api/llm-debug` to verify the model from
-  the deployment's own network position.
-- **LLM fixed to Gemini** (`gemini-flash-lite-latest`) via the encrypted
-  `GEMINI_API` project environment variable.
+- **Free-tier quirks**: the Gemini free tier intermittently returns empty
+  completions (the `-latest` model aliases were badly affected in 2026-10, so
+  the demo pins versioned models). The demo retries, automatically falls back
+  from `gemini-3.5-flash` to `gemini-3.1-flash-lite`, and only then shows a
+  friendly message asking to try again. Check `/api/health` and `/api/llm-debug`
+  to verify the model from the deployment's own network position.
+- **LLM fixed to Gemini** (`gemini-3.5-flash`, fallback `gemini-3.1-flash-lite`)
+  via the encrypted `GEMINI_API` project environment variable.
